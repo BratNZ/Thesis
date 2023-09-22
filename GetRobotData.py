@@ -1,8 +1,9 @@
 '''
 The program will capture actual waypoint data
 
-Regading RTDE output:
+Regarding RTDE output:
    getActualTCPPose: this is RPY radians converted into RX, RY, RZ
+   The joint angles were found to be more accurate after capturing all pose data
 '''
 
 import sys
