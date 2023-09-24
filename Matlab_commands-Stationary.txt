@@ -1,0 +1,102 @@
+Matlab Commands - Stationary
+
+addpath('d:\Study\quaternion_library');
+
+%videoObject = VideoReader('D:\Study\2023-07-18-1423-2.mp4');
+%allFrames = read(videoObject);
+%filedata = readtable('D:\Study\2023-08-26_2210.csv');
+
+%videoObject = VideoReader('D:\Study\2023-08-27_2125.mp4');
+%allFrames = read(videoObject);
+
+filedata = readtable('D:\Study\2023-08-27_2125.csv');
+
+cmdata = [ 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ]
+cameranames=table2array(filedata(:,1));
+data=table2array(filedata(:,2:end))
+for i = 1:height(data)
+  if strcmp(cameranames(i),'CM')
+	% cmdata=[cmdata; data(i,:)]
+	cmdata=[ data(i,:)]
+  end
+end
+
+time_data=table2array(cmdata(:,2));
+
+gyro_x_data=cmdata(:,7);
+gyro_y_data=cmdata(:,8);
+gyro_z_data=cmdata(:,9);
+gyro_data_table=table( gyro_x_data,gyro_y_data,gyro_z_data )
+gyrodata=table2array(gyro_data_table);
+gyro_data=table2array(gyrodata);
+
+accel_x_data=cmdata(:,4);
+accel_y_data=cmdata(:,5);
+accel_z_data=cmdata(:,6);
+accel_data_table=table( accel_x_data,accel_y_data,accel_z_data )
+acceldata=table2array(accel_data_table);
+accel_data=table2array(acceldata);
+
+% Normalise acceleration data
+for t = 1:size(accel_data)
+    norm_accel_data(t,1)= accel_data(t,1)*(accel_data(t,1)/sqrt(accel_data(t,1)*accel_data(t,1)+accel_data(t,2)*accel_data(t,2)+accel_data(t,3)*accel_data(t,3)))
+	norm_accel_data(t,2)=	accel_data(t,2)*(accel_data(t,2)/sqrt(accel_data(t,1)*accel_data(t,1)+accel_data(t,2)*accel_data(t,2)+accel_data(t,3)*accel_data(t,3)))
+	norm_accel_data(t,3)=	accel_data(t,3)*(accel_data(t,3)/sqrt(accel_data(t,1)*accel_data(t,1)+accel_data(t,2)*accel_data(t,2)+accel_data(t,3)*accel_data(t,3))) 
+end	
+% Normalise Gyro data
+for t = 1:length(gyro_data)
+    norm_gyro_data(t,1)= gyro_data(t,1)*(gyro_data(t,1)/sqrt(gyro_data(t,1)*gyro_data(t,1)+gyro_data(t,2)*gyro_data(t,2)+gyro_data(t,3)*gyro_data(t,3)))
+    norm_gyro_data(t,2)= gyro_data(t,2)*(gyro_data(t,2)/sqrt(gyro_data(t,1)*gyro_data(t,1)+gyro_data(t,2)*gyro_data(t,2)+gyro_data(t,3)*gyro_data(t,3)))
+    norm_gyro_data(t,3)= gyro_data(t,3)*(gyro_data(t,3)/sqrt(gyro_data(t,1)*gyro_data(t,1)+gyro_data(t,2)*gyro_data(t,2)+gyro_data(t,3)*gyro_data(t,3)))
+end	
+	
+addpath('d:\Study\quaternion_library');
+AHRSOBJ=MadgwickAHRS('SamplePeriod', 1/996, 'Beta', 0.1);
+
+quaternion = zeros(length(time_data), 4);
+euler = zeros(length(time_data), 3);
+tic
+for l = 1:10
+	for t = 1:length(time_data)
+		AHRSOBJ.UpdateIMU(gyro_data(t,:), accel_data(t,:));
+		% gyroscope units must be radians
+		quaternion(t, :) = AHRSOBJ.Quaternion;
+		euler(t, :) = quat2eul(AHRSOBJ.Quaternion);
+	end
+end
+toc
+
+plot(euler);
+legend
+title("Madgwick results from a stationary vehicle")
+xlabel "Time"
+ylabel "Angle"
+
+Kalman:
+FUSE=imufilter(SampleRate=8,AccelerometerNoise=0.16,GyroscopeNoise=0.03,OrientationFormat='quaternion');
+start=tic;
+q=FUSE(norm_gyro_data,norm_accel_data);
+EulerAngleOutput=quat2eul(q,'XYZ')
+elapsed_time=toc(start)
+
+plot(EulerAngleOutput);
+
+deepNetworkDesigner
+
+gyro_roll_data=trapz(gyro_x_data);
+gyro_pitch_data=trapz(gyro_y_data);
+
+for t=1:numel(accel_x_data)
+  accel_roll_data(t)=atan2(accel_y_data(t), accel_z_data(t))*57.3;
+  accel_pitch_data(t)=atan2(accel_x_data(t), sqrt(accel_y_data(t)*accel_y_data(t) + accel_z_data(t)*accel_z_data(t)))*57.3;
+end
+
+filtered_roll_data=zeros(1,numel(gyro_x_data));
+filtered_pitch_data=zeros(1,numel(gyro_x_data));
+
+weight=0.75;
+
+for t=2:numel(gyro_x_data)
+  filtered_roll_data(t) = (1-weight)*(filtered_roll_data(t-1) + gyro_roll_data(t)) + weight*accel_roll_data(t)
+  filtered_pitch_data(t) = (1-weight)*(filtered_pitch_data(t-1) + gyro_pitch_data(t)) + weight*accel_pitch_data(t)
+end

@@ -1,0 +1,258 @@
+%Matlab Commands - Roll only data (Remember to save workspace when complete)
+
+clear all;
+%*********************************************************************************
+% Edit lines below
+movement_type='Varied'
+filename_data='D:\Study\2023-09-21_1212-noextrm.csv';
+% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+filename_robot='D:\Study\robot-230921-1212-noextrm.txt';
+% Jump to line 106 to set robot arm parameters to align the IMU and robot measurements.
+% Once variables are defined, then run all contents of this page.
+%*********************************************************************************
+
+filedata = readtable(filename_data);
+robotdatatable = readtable(filename_robot);
+
+% Get Robot data - roll then pitch of motor joints.
+robotangletable=robotdatatable(:,24:25);
+robotanglearray=table2array(robotangletable);
+% Adjust pitch for 90degree mounting angle.
+robotanglearray(:,2)=(pi/2) - robotanglearray(:,2);
+clear robotangletable robotdatatable;
+
+filedata = readtable(filename_data);
+filetable(:,1:2)=filedata(:,1:2);
+filetable(:,3:8)=filedata(:,4:9);
+timetable(:,1)=filedata(:,3);
+cm_data_array=zeros(1,7);
+fl_data_array=zeros(1,7);
+fr_data_array=zeros(1,7);
+rl_data_array=zeros(1,7);
+rr_data_array=zeros(1,7);
+cm_time_array=NaT(1,1);
+fl_time_array=NaT(1,1);
+fr_time_array=NaT(1,1);
+rl_time_array=NaT(1,1);
+rr_time_array=NaT(1,1);
+clear loop;
+for loop=1:size(filetable)
+  cameraname=filetable(loop,1);
+  if strcmp(cameraname.Var1,'CM')==1
+    cm_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	cm_time_array(end+1,:)=table2array(timetable(loop,1));
+  elseif strcmp(cameraname.Var1,'FL')==1
+    fl_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	fl_time_array(end+1,:)=table2array(timetable(loop,1));
+  elseif strcmp(cameraname.Var1,'FR')==1
+    fr_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	fr_time_array(end+1,:)=table2array(timetable(loop,1));
+  elseif strcmp(cameraname.Var1,'RL')==1
+    rl_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	rl_time_array(end+1,:)=table2array(timetable(loop,1));
+  elseif strcmp(cameraname.Var1,'RR')==1
+    rr_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	rr_time_array(end+1,:)=table2array(timetable(loop,1));
+  end		
+end
+% Trim arrays to get rid of initial initialising row.
+cm_data_array(1,:)=[];
+cm_time_array(1,:)=[];
+fl_data_array(1,:)=[];
+fl_time_array(1,:)=[];
+fr_data_array(1,:)=[];
+fr_time_array(1,:)=[];
+rl_data_array(1,:)=[];
+rl_time_array(1,:)=[];
+rr_data_array(1,:)=[];
+rr_time_array(1,:)=[];
+
+% Reduce data arrays further if they're larger than the smallest array (varied sampling time creates this)
+datasizearray=[ size(cm_data_array,1) size(fl_data_array,1) size(fr_data_array,1) size(rl_data_array,1) size(rr_data_array,1) ];
+smallestarray = min(datasizearray);
+% Truncate all arrays from beginning (zero motion) if data larger than smallest array
+if size(cm_data_array,1) > smallestarray
+	cm_data_array(1,:)=[];
+	cm_time_array(1,:)=[];
+end
+if size(fl_data_array,1) > smallestarray
+	fl_data_array(1,:)=[];
+	fl_time_array(1,:)=[];
+end
+if size(fr_data_array,1) > smallestarray
+	fr_data_array(1,:)=[];
+	fr_time_array(1,:)=[];
+end
+if size(rl_data_array,1) > smallestarray
+	rl_data_array(1,:)=[];
+	rr_time_array(1,:)=[];
+end
+if size(rr_data_array,1) > smallestarray
+	rr_data_array(1,:)=[];
+	rr_time_array(1,:)=[];
+end
+% Do it again if required
+if size(cm_data_array,1) > smallestarray
+	cm_data_array(1,:)=[];
+	cm_time_array(1,:)=[];
+end
+if size(fl_data_array,1) > smallestarray
+	fl_data_array(1,:)=[];
+	fl_time_array(1,:)=[];
+end
+if size(fr_data_array,1) > smallestarray
+	fr_data_array(1,:)=[];
+	fr_time_array(1,:)=[];
+end
+if size(rl_data_array,1) > smallestarray
+	rl_data_array(1,:)=[];
+	rr_time_array(1,:)=[];
+end
+if size(rr_data_array,1) > smallestarray
+	rr_data_array(1,:)=[];
+	rr_time_array(1,:)=[];
+end
+% Adjust time_arrays to suit.
+if size(cm_time_array,1) > smallestarray
+	cm_time_array(1,:)=[];
+end
+if size(fl_time_array,1) > smallestarray
+	fl_time_array(1,:)=[];
+end
+if size(fr_time_array,1) > smallestarray
+	fr_time_array(1,:)=[];
+end
+if size(rl_time_array,1) > smallestarray
+	rl_time_array(1,:)=[];
+end
+if size(rr_time_array,1) > smallestarray
+	rr_time_array(1,:)=[];
+end
+cm_imudatasize=length(cm_data_array);
+fl_imudatasize=length(fl_data_array);
+fr_imudatasize=length(fr_data_array);
+rl_imudatasize=length(rl_data_array);
+rr_imudatasize=length(rr_data_array);
+
+reducedrobotanglearray=zeros(length(cm_data_array),2);
+% Counting the lines in the robot file there are 6251 entry lines per second.
+% Use CM data as the IMU to compare against as this is the middle sampling IMU and the one we're most interested in.
+% There are 1001 lines of data in the CM sample set of 119 seconds, sampled at approx 8.4 samples per second.
+% imuchange line is line in imu data where change is first noticed (beginning of movement)
+cm_imuchangeline=47;
+% robot line is line in robot arm data where change is first noticed (beginning of movement)
+robotchangeline=26460;
+robotarraysize=length(robotanglearray);
+%imu sample rate is number of entries divided by 119 seconds = ~8.3
+cm_imusamplerate=8.3;
+% robot sample rate is number of robot entries divided by 10 seconds = 6403
+robotsamplerate = 6403;
+% To get lines to skip, divide robot sample rate by imu sample rate. = 761.1958 so is rounded to nearest integer = 761
+%linestoskip= round(robotsamplerate / cm_imusamplerate)
+linestoskip= 260;
+% Offset value is the alignment position.
+robotarrayline=robotchangeline;
+for loop = cm_imuchangeline:cm_imudatasize
+   if robotarrayline > size(robotanglearray)
+		break;
+	end
+	robotanglearray(robotarrayline,:)
+	reducedrobotanglearray(loop,1:2) = robotanglearray(robotarrayline,:);
+	robotarrayline = robotarrayline + linestoskip;
+end
+
+imuarray=[];
+for imu = [ "cm" "fl" "fr" "rl" "rr" ]
+	clear imuarray;
+	if imu == 'cm'
+		imuarray=cm_data_array;
+	elseif imu == 'fl'
+		imuarray=fl_data_array;
+	elseif imu == 'fr'
+		imuarray=fr_data_array;
+	elseif imu == 'rl'
+		imuarray=rl_data_array;
+	elseif imu == 'rr'
+		imuarray=rr_data_array;
+	end
+	gyro_x=imuarray(:,5);
+	gyro_y=imuarray(:,6);
+	gyro_z=imuarray(:,7);
+	accel_x=imuarray(:,2);
+	accel_y=imuarray(:,3);	
+	accel_z=imuarray(:,4);
+	if imu == 'cm'
+		[ cm_Mpitch, cm_Mroll, cm_Melapsed_time ] = madgwickfilter(cm_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,cm_time_array);
+		[ cm_Kpitch, cm_Kroll, cm_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		cm_Mangles= [ cm_Mroll cm_Mpitch ];
+		cm_Kangles= [ cm_Kroll cm_Kpitch ];
+	elseif imu == 'fl'
+		[ fl_Mpitch, fl_Mroll, fl_Melapsed_time ] = madgwickfilter(fl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fl_time_array);
+		[ fl_Kpitch, fl_Kroll, fl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		fl_Mangles= [ fl_Mroll fl_Mpitch ];
+		fl_Kangles= [ fl_Kroll fl_Kpitch ];
+	elseif imu == 'fr'
+		[ fr_Mpitch, fr_Mroll, fr_Melapsed_time ] = madgwickfilter(fr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fr_time_array);
+		[ fr_Kpitch, fr_Kroll, fr_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		fr_Mangles= [ fr_Mroll fr_Mpitch ];
+		fr_Kangles= [ fr_Kroll fr_Kpitch ];
+	elseif imu == 'rl'
+		[ rl_Mpitch, rl_Mroll, rl_Melapsed_time ] = madgwickfilter(rl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rl_time_array);
+		[ rl_Kpitch, rl_Kroll, rl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		rl_Mangles= [ rl_Mroll rl_Mpitch ];
+		rl_Kangles= [ rl_Kroll rl_Kpitch ];
+	elseif imu == 'rr'
+		[ rr_Mpitch, rr_Mroll, rr_Melapsed_time ] = madgwickfilter(rr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rr_time_array);
+		[ rr_Kpitch, rr_Kroll, rr_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		rr_Mangles= [ rr_Mroll rr_Mpitch ];
+		rr_Kangles= [ rr_Kroll rr_Kpitch ];
+	end
+end
+for l = 1:smallestarray
+	average_Kroll(l,:) = mean([ fl_Kroll(l) cm_Kroll(l) fr_Kroll(l) rl_Kroll(l) rr_Kroll(l) ]);
+	average_Mroll(l,:) = mean([ fl_Mroll(l) cm_Mroll(l) fr_Mroll(l) rl_Mroll(l) rr_Mroll(l) ]);
+	average_Kpitch(l,:) = mean([ fl_Kpitch(l) cm_Kpitch(l) fr_Kpitch(l) rl_Kpitch(l) rr_Kpitch(l) ]);
+	average_Mpitch(l,:) = mean([ fl_Mpitch(l) cm_Mpitch(l) fr_Mpitch(l) rl_Mpitch(l) rr_Mpitch(l) ]);
+end
+clear datasizearray smallestarray;
+
+M_elapsed_time_array=[ cm_Melapsed_time fl_Melapsed_time fr_Melapsed_time rl_Melapsed_time rr_Melapsed_time ]
+M_time_mean = mean(M_elapsed_time_array)
+M_time_median = median(M_elapsed_time_array)
+M_time_min = min(M_elapsed_time_array)
+M_time_max = max(M_elapsed_time_array)
+
+K_elapsed_time_array=[ cm_Kelapsed_time fl_Kelapsed_time fr_Kelapsed_time rl_Kelapsed_time rr_Kelapsed_time ]
+K_time_mean = mean(K_elapsed_time_array)
+K_time_median = median(K_elapsed_time_array)
+K_time_min = min(K_elapsed_time_array)
+K_time_max = max(K_elapsed_time_array)
+
+hold off
+% Plot Kalman Pitch and Roll
+plot(cm_Kpitch(1:300,:));
+hold on
+plot(cm_Kroll(1:300,:));
+% Plot Robot arm data
+plot(-reducedrobotanglearray(1:300,:));
+% Plot Madgwick Pitch and Roll
+plot(cm_Mpitch(1:300,:));
+plot(cm_Mroll(1:300,:));
+title("Kalman Angles, Madgwick Angles and Robot Arm movements compared on a varied-motion vehicle");
+xlabel ('Time');
+ylabel ('Angle in Radians');
+legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch', 'Madgwick Roll')
+hold off
+figure
+% Plot Robot arm data
+plot(reducedrobotanglearray(1:300,:));
+hold on
+plot(average_Mpitch(1:300,:));
+plot(average_Kroll(1:300,:));
+plot(average_Kpitch(1:300,:));
+plot(average_Mroll(1:300,:));
+title("Average Kalman Motion, Average Madgwick Motion and Robot Arm movements compared");
+xlabel ('Time');
+ylabel ('Angle in Radians');
+legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch', 'Madgwick Roll')
+
