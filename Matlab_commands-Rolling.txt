@@ -4,9 +4,9 @@ clear all;
 %*********************************************************************************
 % Edit lines below
 movement_type='Roll'
-filename_data='D:\Study\2023-09-14_0959-roll.csv';
+filename_data='C:\Study\2023-09-14_0959-roll.csv';
 % NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
-filename_robot='D:\Study\robot-230914-095937-roll.txt';
+filename_robot='C:\Study\robot-230914-095937-roll.txt';
 % Jump to line 80 to set robot arm parameters to align the IMU and robot measurements.
 % Once variables are defined, then run all contents of this page.
 %*********************************************************************************
@@ -173,7 +173,7 @@ hold on
 plot(reducedrobotanglearray);
 plot(cm_MRoll);
 title("Kalman Roll, Madgwick Roll and Robot Arm movements compared");
-xlabel ('Time');
+xlabel ('Number of Data Samples');
 ylabel ('Angle in Radians');
 legend ('Kalman Roll','Robot Pitch','Robot Roll','Madgwick Roll')
 hold off
@@ -184,6 +184,6 @@ hold on
 plot(average_Mroll);
 plot(average_Kroll);
 title("Average Kalman Roll, Average Madgwick Roll and Robot Arm movements compared");
-xlabel ('Time');
+xlabel ('Number of Data Samples');
 ylabel ('Angle in Radians');
 legend ('Robot Roll','Robot Pitch','AverageMadgwick Roll','Average Kalman Roll')

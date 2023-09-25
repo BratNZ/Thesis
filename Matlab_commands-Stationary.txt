@@ -1,13 +1,10 @@
 Matlab Commands - Stationary
 
-addpath('d:\Study\quaternion_library');
+addpath('c:\Study\quaternion_library');
 
-%videoObject = VideoReader('D:\Study\2023-07-18-1423-2.mp4');
+%videoObject = VideoReader('c:\Study\2023-07-18-1423-2.mp4');
 %allFrames = read(videoObject);
-%filedata = readtable('D:\Study\2023-08-26_2210.csv');
-
-%videoObject = VideoReader('D:\Study\2023-08-27_2125.mp4');
-%allFrames = read(videoObject);
+%filedata = readtable('c:\Study\2023-08-26_2210.csv');
 
 filedata = readtable('D:\Study\2023-08-27_2125.csv');
 
@@ -69,7 +66,7 @@ toc
 plot(euler);
 legend
 title("Madgwick results from a stationary vehicle")
-xlabel "Time"
+xlabel "Number of Data Samples"
 ylabel "Angle"
 
 Kalman:
