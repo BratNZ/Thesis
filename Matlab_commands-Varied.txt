@@ -11,12 +11,6 @@ sequencetime=600;
 % Jump to line 106 to set robot arm parameters to align the IMU and robot measurements.
 % Once variables are defined, then run all contents of this page.
 %*********************************************************************************
-120=l5
-6178 = 6173
-12484=35:0
-16491=36.0 Diff = 4008
-25308=40.0
-27574=41.0. Diff=2266.
 filedata = readtable(filename_data);
 robotdatatable = readtable(filename_robot);
 
@@ -221,6 +215,10 @@ for l = 1:smallestarray
 	average_Mroll(l,:) = mean([ fl_Mroll(l) cm_Mroll(l) fr_Mroll(l) rl_Mroll(l) rr_Mroll(l) ]);
 	average_Kpitch(l,:) = mean([ fl_Kpitch(l) cm_Kpitch(l) fr_Kpitch(l) rl_Kpitch(l) rr_Kpitch(l) ]);
 	average_Mpitch(l,:) = mean([ fl_Mpitch(l) cm_Mpitch(l) fr_Mpitch(l) rl_Mpitch(l) rr_Mpitch(l) ]);
+	average_3_Kroll(l,:) = mean([ fl_Kroll(l) cm_Kroll(l) fr_Kroll(l) ]);
+	average_3_Mroll(l,:) = mean([ fl_Mroll(l) cm_Mroll(l) fr_Mroll(l) ]);
+	average_3_Kpitch(l,:) = mean([ fl_Kpitch(l) cm_Kpitch(l) fr_Kpitch(l) ]);
+	average_3_Mpitch(l,:) = mean([ fl_Mpitch(l) cm_Mpitch(l) fr_Mpitch(l) ]);
 end
 clear datasizearray smallestarray;
 
@@ -237,6 +235,8 @@ K_time_min = min(K_elapsed_time_array)
 K_time_max = max(K_elapsed_time_array)
 
 nn_prediction_array = cm_data_array(:,2:end);
+nn_3IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) ];
+nn_5IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) rl_data_array(:,2:end) rr_data_array(:,2:end) ];
 nn_response_array = reducedrobotanglearray;
 
 startpos=4500
@@ -269,4 +269,61 @@ title("Average Kalman Motion, Average Madgwick Motion and Robot Arm movements co
 xlabel ('Number of IMU data samples');
 ylabel ('Angle in Radians');
 legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch', 'Madgwick Roll')
+
+startpos=4500
+endpos=4999
+hold off
+% Plot Kalman Pitch across all three IMUs
+plot(cm_Kpitch(startpos:endpos,:));
+hold on
+plot(fl_Kpitch(startpos:endpos,:));
+plot(fr_Kpitch(startpos:endpos,:));
+hold off
+title("Kalman Pitch Angles cross the front Three IMUs");
+xlabel ('Number of IMU data samples');
+ylabel ('Angle in Radians');
+legend ('Camera Pitch','FL Pitch','FR Pitch')
+figure
+plot(cm_Kroll(startpos:endpos,:));
+hold on
+plot(fl_Kroll(startpos:endpos,:));
+plot(fl_Kroll(startpos:endpos,:));
+hold off
+title("Kalman Roll Angles cross the front Three IMUs");
+xlabel ('Number of IMU data samples');
+ylabel ('Angle in Radians');
+legend ('Camera Roll','FL Roll','FR Roll')
+figure
+plot(average_3_Kpitch(startpos:endpos,:));
+hold on
+plot(average_3_Kroll(startpos:endpos,:));
+plot(average_3_Mpitch(startpos:endpos,:));
+plot(average_3_Mroll(startpos:endpos,:));
+% Plot Robot arm data
+plot(-reducedrobotanglearray(startpos:endpos,:));
+hold off
+title("Average Kalman Pitch and Roll Angles and Robot Arm angles on front IMUs");
+xlabel ('Number of IMU data samples');
+ylabel ('Angle in Radians');
+legend ('Average Kalman Pitch','Average Kalman Roll','Average Madgwick Pitch','Average Madgwick Roll''Robot Pitch','Robot Roll')
+
+figure
+% Plot Madgwick Pitch across all three IMUs
+plot(cm_Mpitch(startpos:endpos,:));
+hold on
+plot(fl_Mpitch(startpos:endpos,:));
+plot(fr_Mpitch(startpos:endpos,:));
+hold off
+figure
+plot(cm_Mroll(startpos:endpos,:));
+hold on
+plot(fl_Mroll(startpos:endpos,:));
+plot(fl_Mroll(startpos:endpos,:));
+figure
+plot(average_3_Mpitch(startpos:endpos,:));
+hold on
+plot(average_3_Mroll(startpos:endpos,:));
+% Plot Robot arm data
+plot(-reducedrobotanglearray(startpos:endpos,:));
+hold off
 
