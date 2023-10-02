@@ -1,21 +1,33 @@
-%Matlab Commands - Roll only data (Remember to save workspace when complete)
+%Matlab Commands - Magnetometer-assisted (Remember to save workspace when complete)
 
 clear all;
 %*********************************************************************************
 % Edit lines below
-movement_type='Rotation'
-filename_data='C:\Study\2023-09-27_1042-rotatewithmag.csv';
+movement_type='Varied-Rotations'
+filename_data='C:\Study\2023-09-26_1733-rotating.csv';
 % NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
-filename_robot='C:\Study\robot-230927-104258-rotatewithmag.txt';
-sequencetime=4630;
-% Jump to line 106 to set robot arm parameters to align the IMU and robot measurements.
-% Once variables are defined, then run all contents of this page.
+filename_robot='C:\Study\robot-230926-173352-rotating.txt';
+sequencetime=600;
+cm_imuchangeline=18;
+robotchangeline=22797;
 %*********************************************************************************
-filedata = readtable(filename_data);
 robotdatatable = readtable(filename_robot);
 
 % Get Robot data - roll then pitch of motor joints.
 robotangletable=robotdatatable(:,24:25);
+robottimingtable=robotdatatable(:,2);
+robottimingarray=table2array(robottimingtable);
+robotelapsedtimearray=[];
+robotelapsedtimearray(1)=0;
+for x=2:length(robottimingarray)
+	timediff=abs(second(robottimingarray(x)) - second(robottimingarray(x-1)));
+	% Account for minute transitions
+	if timediff>=50
+		timediff=timediff - 60;
+	end
+	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
+end
+  
 robotanglearray=table2array(robotangletable);
 % Adjust pitch for 90degree mounting angle.
 robotanglearray(:,2)=(pi/2) - robotanglearray(:,2);
@@ -23,7 +35,7 @@ clear robotangletable robotdatatable;
 
 filedata = readtable(filename_data);
 filetable(:,1:2)=filedata(:,1:2);
-filetable(:,3:8)=filedata(:,4:9);
+filetable(:,3:11)=filedata(:,4:9);
 timetable(:,1)=filedata(:,3);
 cm_data_array=zeros(1,7);
 fl_data_array=zeros(1,7);
@@ -135,32 +147,40 @@ rl_imudatasize=length(rl_data_array);
 rr_imudatasize=length(rr_data_array);
 
 reducedrobotanglearray=zeros(length(cm_data_array),2);
-
-% Counting the lines in the robot file there are 6251 entry lines per second.
-% Use CM data as the IMU to compare against as this is the middle sampling IMU and the one we're most interested in.
-% There are 4999 lines of data in the CM sample set of 600 seconds, sampled at approx 8.33 samples per second.
-% imuchange line is line in imu data where change is first noticed (beginning of movement)
-cm_imuchangeline=50;
-% robot line is line in robot arm data where change is first noticed (beginning of movement)
-robotchangeline=25850;
 robotarraysize=length(robotanglearray);
-%imu sample rate is number of entries divided by 119 seconds = ~8.3
-cm_imusamplerate = cm_imudatasize / sequencetime;
-% cm_imusamplerate=8.3;
-% robot sample rate is number of robot entries divided by 10 seconds = 6403
-robotsamplerate = 6403;
-% To get lines to skip, divide robot sample rate by imu sample rate. = 761.1958 so is rounded to nearest integer = 761
-%linestoskip= round(robotsamplerate / cm_imusamplerate)
-linestoskip= 258;
-% Offset value is the alignment position.
-robotarrayline=robotchangeline;
-for loop = cm_imuchangeline:cm_imudatasize
-   if robotarrayline > size(robotanglearray)
-		break;
+startofcmdata=cm_data_array(cm_imuchangeline,1);
+startofrobotdata=robotelapsedtimearray(robotchangeline,1);
+AlignmentDifference=startofrobotdata - startofcmdata;
+reducedrobotanglearray=[];
+for loop=1:cm_imudatasize
+	reducedrobotanglearray(loop,:) = [ 0 0 ];
+end
+robotlinenumber = robotchangeline;
+lastdiff=100;
+for loop = cm_imuchangeline+1:cm_imudatasize
+	cm_elapsed_time=cm_data_array(loop,1);
+	robottime=abs(cm_elapsed_time + AlignmentDifference);
+	for robotloop=robotlinenumber:size((robotanglearray-1))
+		robotloop;
+		prevdiff=abs(robotelapsedtimearray((robotloop-1),1)-robottime);
+		currentdiff=abs(robotelapsedtimearray(robotloop,1)-robottime);
+		nextdiff=abs(robotelapsedtimearray((robotloop+1),1)-robottime);
+		diffarray = [ prevdiff currentdiff nextdiff ];
+		smallestdiff=min(diffarray);
+		if currentdiff==smallestdiff
+			reducedrobotanglearray(loop,:) = robotanglearray(robotloop,:);
+			robotlinenumber = robotloop + 1;
+			lastdiff=100;
+			break
+		end
+		lastdiff
+		if smallestdiff>lastdiff
+			% We've gone too far - break
+			lastdiff=100;
+			break
+		end
+		lastdiff=smallestdiff;
 	end
-	robotanglearray(robotarrayline,:)
-	reducedrobotanglearray(loop,1:2) = robotanglearray(robotarrayline,:);
-	robotarrayline = robotarrayline + linestoskip;
 end
 
 imuarray=[];
@@ -177,24 +197,25 @@ for imu = [ "cm" "fl" "fr" "rl" "rr" ]
 	elseif imu == 'rr'
 		imuarray=rr_data_array;
 	end
-	gyro_x=imuarray(:,5);
-	gyro_y=imuarray(:,6);
-	gyro_z=imuarray(:,7);
 	accel_x=imuarray(:,2);
 	accel_y=imuarray(:,3);	
 	accel_z=imuarray(:,4);
+	gyro_x=imuarray(:,5);
+	gyro_y=imuarray(:,6);
+	gyro_z=imuarray(:,7);
+	
 	if imu == 'cm'
 		[ cm_Mpitch, cm_Mroll, cm_Melapsed_time ] = madgwickfilter(cm_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,cm_time_array);
-		[ cm_Kpitch, cm_Kroll, cm_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		[ cm_Kpitch, cm_Kroll, cm_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,);
 		cm_Mangles= [ cm_Mroll cm_Mpitch ];
 		cm_Kangles= [ cm_Kroll cm_Kpitch ];
 	elseif imu == 'fl'
 		[ fl_Mpitch, fl_Mroll, fl_Melapsed_time ] = madgwickfilter(fl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fl_time_array);
-		[ fl_Kpitch, fl_Kroll, fl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		[ fl_Kpitch, fl_Kroll, fl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,);
 		fl_Mangles= [ fl_Mroll fl_Mpitch ];
 		fl_Kangles= [ fl_Kroll fl_Kpitch ];
 	elseif imu == 'fr'
-		[ fr_Mpitch, fr_Mroll, fr_Melapsed_time ] = madgwickfilter(fr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fr_time_array);
+		[ fr_Mpitch, fr_Mroll, fr_Melapsed_time ] = madgwickilter(fr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fr_time_array);
 		[ fr_Kpitch, fr_Kroll, fr_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
 		fr_Mangles= [ fr_Mroll fr_Mpitch ];
 		fr_Kangles= [ fr_Kroll fr_Kpitch ];
@@ -220,47 +241,46 @@ for l = 1:smallestarray
 	average_3_Kpitch(l,:) = mean([ fl_Kpitch(l) cm_Kpitch(l) fr_Kpitch(l) ]);
 	average_3_Mpitch(l,:) = mean([ fl_Mpitch(l) cm_Mpitch(l) fr_Mpitch(l) ]);
 end
-clear datasizearray smallestarray;
 
-M_elapsed_time_array=[ cm_Melapsed_time fl_Melapsed_time fr_Melapsed_time rl_Melapsed_time rr_Melapsed_time ]
-M_time_mean = mean(M_elapsed_time_array)
-M_time_median = median(M_elapsed_time_array)
-M_time_min = min(M_elapsed_time_array)
-M_time_max = max(M_elapsed_time_array)
+M_elapsed_time_array=[ cm_Melapsed_time fl_Melapsed_time fr_Melapsed_time rl_Melapsed_time rr_Melapsed_time ];
+M_time_mean = mean(M_elapsed_time_array);
+M_time_median = median(M_elapsed_time_array);
+M_time_min = min(M_elapsed_time_array);
+M_time_max = max(M_elapsed_time_array);
 
-K_elapsed_time_array=[ cm_Kelapsed_time fl_Kelapsed_time fr_Kelapsed_time rl_Kelapsed_time rr_Kelapsed_time ]
-K_time_mean = mean(K_elapsed_time_array)
-K_time_median = median(K_elapsed_time_array)
-K_time_min = min(K_elapsed_time_array)
-K_time_max = max(K_elapsed_time_array)
+K_elapsed_time_array=[ cm_Kelapsed_time fl_Kelapsed_time fr_Kelapsed_time rl_Kelapsed_time rr_Kelapsed_time ];
+K_time_mean = mean(K_elapsed_time_array);
+K_time_median = median(K_elapsed_time_array);
+K_time_min = min(K_elapsed_time_array);
+K_time_max = max(K_elapsed_time_array);
 
 nn_prediction_array = cm_data_array(:,2:end);
 nn_3IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) ];
 nn_5IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) rl_data_array(:,2:end) rr_data_array(:,2:end) ];
 nn_response_array = reducedrobotanglearray;
 
-startpos=4500
-endpos=4999
-hold off
+startpos=1
+endpos=599
+hold off;
 % Plot Kalman Pitch and Roll
 plot(cm_Kpitch(startpos:endpos,:));
-hold on
+hold on;
 plot(cm_Kroll(startpos:endpos,:));
 % Plot Robot arm data
-plot(-reducedrobotanglearray(startpos:endpos,:));
+plot(reducedrobotanglearray(startpos:endpos,:));
 % Plot Madgwick Pitch and Roll
 plot(cm_Mpitch(startpos:endpos,:));
 plot(cm_Mroll(startpos:endpos,:));
-title("Kalman Angles, Madgwick Angles and Robot Arm movements compared on a varied-motion vehicle");
+title("Kalman and Madgwick Angles (with Magnetometer) and Robot Arm movements compared on a varied-motion vehicle");
 xlabel ('Number of IMU data samples');
 ylabel ('Angle in Radians');
-legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch', 'Madgwick Roll')
-hold off
+legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch','Madgwick Roll')
+hold off;
 
-figure
+figure;
 % Plot Robot arm data
 plot(reducedrobotanglearray(startpos:endpos,:));
-hold on
+hold on;
 plot(average_Mpitch(startpos:endpos,:));
 plot(average_Kroll(startpos:endpos,:));
 plot(average_Kpitch(startpos:endpos,:));
@@ -268,62 +288,62 @@ plot(average_Mroll(startpos:endpos,:));
 title("Average Kalman Motion, Average Madgwick Motion and Robot Arm movements compared");
 xlabel ('Number of IMU data samples');
 ylabel ('Angle in Radians');
-legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch', 'Madgwick Roll')
+legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch', 'Madgwick Roll');
 
-startpos=4500
-endpos=4999
-hold off
+startpos=1;
+endpos=500;
+hold off;
 % Plot Kalman Pitch across all three IMUs
 plot(cm_Kpitch(startpos:endpos,:));
-hold on
+hold on;
 plot(fl_Kpitch(startpos:endpos,:));
 plot(fr_Kpitch(startpos:endpos,:));
-hold off
+hold off;
 title("Kalman Pitch Angles cross the front Three IMUs");
 xlabel ('Number of IMU data samples');
 ylabel ('Angle in Radians');
 legend ('Camera Pitch','FL Pitch','FR Pitch')
-figure
+figure;
 plot(cm_Kroll(startpos:endpos,:));
-hold on
+hold on;
 plot(fl_Kroll(startpos:endpos,:));
 plot(fl_Kroll(startpos:endpos,:));
-hold off
+hold off;
 title("Kalman Roll Angles cross the front Three IMUs");
 xlabel ('Number of IMU data samples');
 ylabel ('Angle in Radians');
 legend ('Camera Roll','FL Roll','FR Roll')
-figure
+figure;
 plot(average_3_Kpitch(startpos:endpos,:));
-hold on
+hold on;
 plot(average_3_Kroll(startpos:endpos,:));
 plot(average_3_Mpitch(startpos:endpos,:));
 plot(average_3_Mroll(startpos:endpos,:));
 % Plot Robot arm data
 plot(-reducedrobotanglearray(startpos:endpos,:));
-hold off
+hold off;
 title("Average Kalman Pitch and Roll Angles and Robot Arm angles on front IMUs");
 xlabel ('Number of IMU data samples');
 ylabel ('Angle in Radians');
 legend ('Average Kalman Pitch','Average Kalman Roll','Average Madgwick Pitch','Average Madgwick Roll''Robot Pitch','Robot Roll')
 
-figure
+figure;
 % Plot Madgwick Pitch across all three IMUs
 plot(cm_Mpitch(startpos:endpos,:));
-hold on
+hold on;
 plot(fl_Mpitch(startpos:endpos,:));
 plot(fr_Mpitch(startpos:endpos,:));
-hold off
-figure
+hold off;
+figure;
 plot(cm_Mroll(startpos:endpos,:));
-hold on
+hold on;
 plot(fl_Mroll(startpos:endpos,:));
 plot(fl_Mroll(startpos:endpos,:));
-figure
+figure;
 plot(average_3_Mpitch(startpos:endpos,:));
-hold on
+hold on;
 plot(average_3_Mroll(startpos:endpos,:));
 % Plot Robot arm data
 plot(-reducedrobotanglearray(startpos:endpos,:));
-hold off
+hold off;
 
