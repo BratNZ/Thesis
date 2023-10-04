@@ -8,18 +8,32 @@ filename_data='C:\Study\2023-09-21_1212-noextrm.csv';
 % NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
 filename_robot='C:\Study\robot-230921-1212-noextrm.txt';
 sequencetime=600;
-% Jump to line 106 to set robot arm parameters to align the IMU and robot measurements.
-% Once variables are defined, then run all contents of this page.
+cm_imuchangeline=50;
+robotchangeline=25850;
 %*********************************************************************************
 filedata = readtable(filename_data);
 robotdatatable = readtable(filename_robot);
 
 % Get Robot data - roll then pitch of motor joints.
 robotangletable=robotdatatable(:,24:25);
+robottimingtable=robotdatatable(:,2);
+robottimingarray=table2array(robottimingtable);
+robotelapsedtimearray=[];
+robotelapsedtimearray(1)=0;
+for x=2:length(robottimingarray)
+	timediff=abs(second(robottimingarray(x)) - second(robottimingarray(x-1)));
+	% Account for minute transitions
+	if timediff>=50
+		timediff=timediff - 60.0;
+	end
+	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
+end
+
+% Get Robot data - roll then pitch of motor joints.
+robotangletable=robotdatatable(:,24:25);
 robotanglearray=table2array(robotangletable);
 % Adjust pitch for 90degree mounting angle.
 robotanglearray(:,2)=(pi/2) - robotanglearray(:,2);
-clear robotangletable robotdatatable;
 
 filedata = readtable(filename_data);
 filetable(:,1:2)=filedata(:,1:2);
@@ -135,32 +149,42 @@ rl_imudatasize=length(rl_data_array);
 rr_imudatasize=length(rr_data_array);
 
 reducedrobotanglearray=zeros(length(cm_data_array),2);
-
-% Counting the lines in the robot file there are 6251 entry lines per second.
-% Use CM data as the IMU to compare against as this is the middle sampling IMU and the one we're most interested in.
-% There are 4999 lines of data in the CM sample set of 600 seconds, sampled at approx 8.33 samples per second.
-% imuchange line is line in imu data where change is first noticed (beginning of movement)
-cm_imuchangeline=50;
-% robot line is line in robot arm data where change is first noticed (beginning of movement)
-robotchangeline=25850;
 robotarraysize=length(robotanglearray);
-%imu sample rate is number of entries divided by 119 seconds = ~8.3
-cm_imusamplerate = cm_imudatasize / sequencetime;
-% cm_imusamplerate=8.3;
-% robot sample rate is number of robot entries divided by 10 seconds = 6403
-robotsamplerate = 6403;
-% To get lines to skip, divide robot sample rate by imu sample rate. = 761.1958 so is rounded to nearest integer = 761
-%linestoskip= round(robotsamplerate / cm_imusamplerate)
-linestoskip= 258;
-% Offset value is the alignment position.
-robotarrayline=robotchangeline;
-for loop = cm_imuchangeline:cm_imudatasize
-   if robotarrayline > size(robotanglearray)
-		break;
+startofcmdata=cm_data_array(cm_imuchangeline,1)
+startofrobotdata=robotelapsedtimearray(robotchangeline,1)
+% 5.9405 and 7.1296
+AlignmentDifference=startofrobotdata - startofcmdata
+% 1.1891
+reducedrobotanglearray=[];
+for loop=1:cm_imudatasize
+	reducedrobotanglearray(loop,:) = [ 0 0 ];
+end
+robotlinenumber = robotchangeline;
+lastdiff=100;
+for loop = cm_imuchangeline+1:cm_imudatasize
+	cm_elapsed_time=cm_data_array(loop,1);
+	robottime=abs(cm_elapsed_time + AlignmentDifference);
+	for robotloop=robotlinenumber:size((robotanglearray-1))
+		robotloop
+		prevdiff=abs(robotelapsedtimearray((robotloop-1),1)-robottime)
+		currentdiff=abs(robotelapsedtimearray(robotloop,1)-robottime)
+		nextdiff=abs(robotelapsedtimearray((robotloop+1),1)-robottime)
+		diffarray = [ prevdiff currentdiff nextdiff ];
+		smallestdiff=min(diffarray)
+		if currentdiff==smallestdiff
+			reducedrobotanglearray(loop,:) = robotanglearray(robotloop,:);
+			robotlinenumber = robotloop + 1;
+			lastdiff=100
+			break
+		end
+		lastdiff
+		if smallestdiff>lastdiff
+			% We've gone too far - break
+			lastdiff=100
+			break
+		end
+		lastdiff=smallestdiff
 	end
-	robotanglearray(robotarrayline,:)
-	reducedrobotanglearray(loop,1:2) = robotanglearray(robotarrayline,:);
-	robotarrayline = robotarrayline + linestoskip;
 end
 
 imuarray=[];
@@ -177,12 +201,12 @@ for imu = [ "cm" "fl" "fr" "rl" "rr" ]
 	elseif imu == 'rr'
 		imuarray=rr_data_array;
 	end
-	gyro_x=imuarray(:,5);
-	gyro_y=imuarray(:,6);
-	gyro_z=imuarray(:,7);
 	accel_x=imuarray(:,2);
 	accel_y=imuarray(:,3);	
 	accel_z=imuarray(:,4);
+	gyro_x=imuarray(:,5);
+	gyro_y=imuarray(:,6);
+	gyro_z=imuarray(:,7);
 	if imu == 'cm'
 		[ cm_Mpitch, cm_Mroll, cm_Melapsed_time ] = madgwickfilter(cm_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,cm_time_array);
 		[ cm_Kpitch, cm_Kroll, cm_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
@@ -239,8 +263,8 @@ nn_3IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_d
 nn_5IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) rl_data_array(:,2:end) rr_data_array(:,2:end) ];
 nn_response_array = reducedrobotanglearray;
 
-startpos=4500
-endpos=4999
+startpos=1
+endpos=600
 hold off
 % Plot Kalman Pitch and Roll
 plot(cm_Kpitch(startpos:endpos,:));

@@ -3,10 +3,10 @@
 clear all;
 %*********************************************************************************
 % Edit lines below
-movement_type='Varied-Rotations-Mag'
-filename_data='C:\Study\2023-09-27_1042-rotatewithmag.csv';
+movement_type='Varied-Rotations-Mag-live'
+filename_data='C:\Study\2023-09-27_1103-rotatewithmag-nnlive.csv';
 % NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
-filename_robot='C:\Study\robot-230927-104258-rotatewithmag.txt';
+filename_robot='C:\Study\robot-230927-110357-rotatewithmag-nnlive.txt';
 sequencetime=600;
 cm_imuchangeline=18;
 robotchangeline=20982;
@@ -27,8 +27,8 @@ for x=2:length(robottimingarray)
 	end
 	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
 end
-robotproblemarray=isnan(robotelapsedtimearray)
-robotproblemindex=find(problemarray)
+robotproblemarray=isnan(robotelapsedtimearray);
+robotproblemindex=find(problemarray);
 
 robotanglearray=table2array(robotangletable);
 % Adjust pitch for 90degree mounting angle.
@@ -36,8 +36,8 @@ robotanglearray(:,2)=(pi/2) - robotanglearray(:,2);
 clear robotangletable robotdatatable;
 
 filedata = readtable(filename_data);
-filetable(:,1:2)=filedata(:,1:2);
-filetable(:,3:11)=filedata(:,4:12);
+filetable(:,1)=filedata(:,1);
+filetable(:,2:10)=filedata(:,4:12);
 timetable(:,1)=filedata(:,3);
 cm_data_array=zeros(1,10);
 fl_data_array=zeros(1,10);
@@ -149,8 +149,8 @@ rl_imudatasize=length(rl_data_array);
 rr_imudatasize=length(rr_data_array);
 
 robotarraysize=length(robotanglearray);
-startofcmdata=cm_data_array(cm_imuchangeline,1);
-startofrobotdata=robotelapsedtimearray(robotchangeline,1);
+startofcmdata=cm_time_array(cm_imuchangeline,1);
+startofrobotdata=robottimingarray(robotchangeline,1);
 AlignmentDifference=startofrobotdata - startofcmdata;
 reducedrobotanglearray=[];
 for loop=1:cm_imudatasize
@@ -158,21 +158,29 @@ for loop=1:cm_imudatasize
 end
 robotlinenumber = robotchangeline;
 lastdiff=100;
-for loop = cm_imuchangeline+1:cm_imudatasize
-	cm_elapsed_time=cm_data_array(loop,1);
-	robottime=abs(cm_elapsed_time + AlignmentDifference);
+loopstart=cm_imuchangeline+1
+for imuloop=loopstart:1:cm_imudatasize
+	imuloop
+	cm_elapsed_time=cm_time_array(imuloop,1)
+	robottime=cm_elapsed_time + AlignmentDifference
 	for robotloop=robotlinenumber:size((robotanglearray-1))
-		prevdiff=abs(robotelapsedtimearray((robotloop-1),1)-robottime);
-		currentdiff=abs(robotelapsedtimearray(robotloop,1)-robottime);
-		nextdiff=abs(robotelapsedtimearray((robotloop+1),1)-robottime);
+		robotloop;
+		imuloop;
+		prevdiff=abs(robottimingarray((robotloop-1),1)-robottime);
+		currentdiff=abs(robottimingarray(robotloop,1)-robottime);
+		nextdiff=abs(robottimingarray((robotloop+1),1)-robottime);
 		diffarray = [ prevdiff currentdiff nextdiff ];
 		smallestdiff=min(diffarray);
 		if currentdiff==smallestdiff
-			reducedrobotanglearray(loop,:) = robotanglearray(robotloop,:);
-			robotlinenumber = robotloop + 1;
+			reducedrobotanglearray(imuloop,:)=robotanglearray(robotloop,:);
+			robotlinenumber=robotloop + 1;
 			lastdiff=100;
+			reducedrobotanglearray(imuloop,:)
+			imuloop
+			robotloop
 			break
 		end
+		lastdiff;
 		if smallestdiff>lastdiff
 			% We've gone too far - break
 			lastdiff=100;
