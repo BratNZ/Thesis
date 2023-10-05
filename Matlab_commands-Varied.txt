@@ -150,10 +150,10 @@ rr_imudatasize=length(rr_data_array);
 
 reducedrobotanglearray=zeros(length(cm_data_array),2);
 robotarraysize=length(robotanglearray);
-startofcmdata=cm_data_array(cm_imuchangeline,1)
-startofrobotdata=robotelapsedtimearray(robotchangeline,1)
+startofcmdata=cm_data_array(cm_imuchangeline,1);
+startofrobotdata=robotelapsedtimearray(robotchangeline,1);
 % 5.9405 and 7.1296
-AlignmentDifference=startofrobotdata - startofcmdata
+AlignmentDifference=startofrobotdata - startofcmdata;
 % 1.1891
 reducedrobotanglearray=[];
 for loop=1:cm_imudatasize
@@ -165,25 +165,25 @@ for loop = cm_imuchangeline+1:cm_imudatasize
 	cm_elapsed_time=cm_data_array(loop,1);
 	robottime=abs(cm_elapsed_time + AlignmentDifference);
 	for robotloop=robotlinenumber:size((robotanglearray-1))
-		robotloop
-		prevdiff=abs(robotelapsedtimearray((robotloop-1),1)-robottime)
-		currentdiff=abs(robotelapsedtimearray(robotloop,1)-robottime)
-		nextdiff=abs(robotelapsedtimearray((robotloop+1),1)-robottime)
+		robotloop;
+		prevdiff=abs(robotelapsedtimearray((robotloop-1),1)-robottime);
+		currentdiff=abs(robotelapsedtimearray(robotloop,1)-robottime);
+		nextdiff=abs(robotelapsedtimearray((robotloop+1),1)-robottime);
 		diffarray = [ prevdiff currentdiff nextdiff ];
-		smallestdiff=min(diffarray)
+		smallestdiff=min(diffarray);
 		if currentdiff==smallestdiff
 			reducedrobotanglearray(loop,:) = robotanglearray(robotloop,:);
 			robotlinenumber = robotloop + 1;
-			lastdiff=100
+			lastdiff=100;
 			break
 		end
 		lastdiff
 		if smallestdiff>lastdiff
 			% We've gone too far - break
-			lastdiff=100
+			lastdiff=100;
 			break
 		end
-		lastdiff=smallestdiff
+		lastdiff=smallestdiff;
 	end
 end
 
@@ -234,7 +234,7 @@ for imu = [ "cm" "fl" "fr" "rl" "rr" ]
 		rr_Kangles= [ rr_Kroll rr_Kpitch ];
 	end
 end
-for l = 1:smallestarray
+for l = 1:cm_imudatasize
 	average_Kroll(l,:) = mean([ fl_Kroll(l) cm_Kroll(l) fr_Kroll(l) rl_Kroll(l) rr_Kroll(l) ]);
 	average_Mroll(l,:) = mean([ fl_Mroll(l) cm_Mroll(l) fr_Mroll(l) rl_Mroll(l) rr_Mroll(l) ]);
 	average_Kpitch(l,:) = mean([ fl_Kpitch(l) cm_Kpitch(l) fr_Kpitch(l) rl_Kpitch(l) rr_Kpitch(l) ]);
@@ -244,19 +244,19 @@ for l = 1:smallestarray
 	average_3_Kpitch(l,:) = mean([ fl_Kpitch(l) cm_Kpitch(l) fr_Kpitch(l) ]);
 	average_3_Mpitch(l,:) = mean([ fl_Mpitch(l) cm_Mpitch(l) fr_Mpitch(l) ]);
 end
-clear datasizearray smallestarray;
 
-M_elapsed_time_array=[ cm_Melapsed_time fl_Melapsed_time fr_Melapsed_time rl_Melapsed_time rr_Melapsed_time ]
-M_time_mean = mean(M_elapsed_time_array)
-M_time_median = median(M_elapsed_time_array)
-M_time_min = min(M_elapsed_time_array)
-M_time_max = max(M_elapsed_time_array)
 
-K_elapsed_time_array=[ cm_Kelapsed_time fl_Kelapsed_time fr_Kelapsed_time rl_Kelapsed_time rr_Kelapsed_time ]
-K_time_mean = mean(K_elapsed_time_array)
-K_time_median = median(K_elapsed_time_array)
-K_time_min = min(K_elapsed_time_array)
-K_time_max = max(K_elapsed_time_array)
+M_elapsed_time_array=[ cm_Melapsed_time fl_Melapsed_time fr_Melapsed_time rl_Melapsed_time rr_Melapsed_time ];
+M_time_mean = mean(M_elapsed_time_array);
+M_time_median = median(M_elapsed_time_array);
+M_time_min = min(M_elapsed_time_array);
+M_time_max = max(M_elapsed_time_array);
+
+K_elapsed_time_array=[ cm_Kelapsed_time fl_Kelapsed_time fr_Kelapsed_time rl_Kelapsed_time rr_Kelapsed_time ];
+K_time_mean = mean(K_elapsed_time_array);
+K_time_median = median(K_elapsed_time_array);
+K_time_min = min(K_elapsed_time_array);
+K_time_max = max(K_elapsed_time_array);
 
 nn_prediction_array = cm_data_array(:,2:end);
 nn_3IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) ];
@@ -283,7 +283,7 @@ hold off
 
 figure
 % Plot Robot arm data
-plot(reducedrobotanglearray(startpos:endpos,:));
+plot(-reducedrobotanglearray(startpos:endpos,:));
 hold on
 plot(average_Mpitch(startpos:endpos,:));
 plot(average_Kroll(startpos:endpos,:));
@@ -292,7 +292,7 @@ plot(average_Mroll(startpos:endpos,:));
 title("Average Kalman Motion, Average Madgwick Motion and Robot Arm movements compared");
 xlabel ('Number of IMU data samples');
 ylabel ('Angle in Radians');
-legend ('Kalman Pitch','Kalman Roll','Robot Pitch','Robot Roll','Madgwick Pitch', 'Madgwick Roll')
+legend ('Robot Pitch','Robot Roll','Madgwick Pitch','Kalman Roll','Kalman Pitch','Madgwick Roll')
 
 startpos=4500
 endpos=4999
