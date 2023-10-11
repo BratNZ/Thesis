@@ -17,18 +17,21 @@ robotdatatable = readtable(filename_robot);
 % Get Robot data - roll then pitch of motor joints.
 robotangletable=robotdatatable(:,24:25);
 robottimingtable=robotdatatable(:,2);
+newrobottimingtable=rmmissing(robottimingtable);
+robottimingtable=newrobottimingtable;
 robottimingarray=table2array(robottimingtable);
 robotelapsedtimearray=[];
 robotelapsedtimearray(1)=0;
 for x=2:length(robottimingarray)
 	timediff=abs(second(robottimingarray(x)) - second(robottimingarray(x-1)));
 	% Account for minute transitions
-	if timediff>=50
-		timediff=timediff - 60.0;
+	if timediff>=20
+		timediff=0.001;
 	end
 	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
 end
 
+% 1535083, 
 % Get Robot data - roll then pitch of motor joints.
 robotangletable=robotdatatable(:,24:25);
 robotanglearray=table2array(robotangletable);
@@ -44,42 +47,42 @@ fl_data_array=zeros(1,7);
 fr_data_array=zeros(1,7);
 rl_data_array=zeros(1,7);
 rr_data_array=zeros(1,7);
-cm_time_array=NaT(1,1);
-fl_time_array=NaT(1,1);
-fr_time_array=NaT(1,1);
-rl_time_array=NaT(1,1);
-rr_time_array=NaT(1,1);
+cm_time_data=NaT(1,1);
+fl_time_data=NaT(1,1);
+fr_time_data=NaT(1,1);
+rl_time_data=NaT(1,1);
+rr_time_data=NaT(1,1);
 clear loop;
 for loop=1:size(filetable)
   cameraname=filetable(loop,1);
   if strcmp(cameraname.Var1,'CM')==1
     cm_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	cm_time_array(end+1,:)=table2array(timetable(loop,1));
+	cm_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
   elseif strcmp(cameraname.Var1,'FL')==1
     fl_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	fl_time_array(end+1,:)=table2array(timetable(loop,1));
+	fl_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
   elseif strcmp(cameraname.Var1,'FR')==1
     fr_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	fr_time_array(end+1,:)=table2array(timetable(loop,1));
+	fr_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
   elseif strcmp(cameraname.Var1,'RL')==1
     rl_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	rl_time_array(end+1,:)=table2array(timetable(loop,1));
+	rl_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
   elseif strcmp(cameraname.Var1,'RR')==1
     rr_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	rr_time_array(end+1,:)=table2array(timetable(loop,1));
+	rr_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
   end		
 end
 % Trim arrays to get rid of initial initialising row.
 cm_data_array(1,:)=[];
-cm_time_array(1,:)=[];
+cm_time_data(1,:)=[];
 fl_data_array(1,:)=[];
-fl_time_array(1,:)=[];
+fl_time_data(1,:)=[];
 fr_data_array(1,:)=[];
-fr_time_array(1,:)=[];
+fr_time_data(1,:)=[];
 rl_data_array(1,:)=[];
-rl_time_array(1,:)=[];
+rl_time_data(1,:)=[];
 rr_data_array(1,:)=[];
-rr_time_array(1,:)=[];
+rr_time_data(1,:)=[];
 
 % Reduce data arrays further if they're larger than the smallest array (varied sampling time creates this)
 datasizearray=[ size(cm_data_array,1) size(fl_data_array,1) size(fr_data_array,1) size(rl_data_array,1) size(rr_data_array,1) ];
@@ -87,60 +90,60 @@ smallestarray = min(datasizearray);
 % Truncate all arrays from beginning (zero motion) if data larger than smallest array
 if size(cm_data_array,1) > smallestarray
 	cm_data_array(1,:)=[];
-	cm_time_array(1,:)=[];
+	cm_time_data(1,:)=[];
 end
 if size(fl_data_array,1) > smallestarray
 	fl_data_array(1,:)=[];
-	fl_time_array(1,:)=[];
+	fl_time_data(1,:)=[];
 end
 if size(fr_data_array,1) > smallestarray
 	fr_data_array(1,:)=[];
-	fr_time_array(1,:)=[];
+	fr_time_data(1,:)=[];
 end
 if size(rl_data_array,1) > smallestarray
 	rl_data_array(1,:)=[];
-	rr_time_array(1,:)=[];
+	rr_time_data(1,:)=[];
 end
 if size(rr_data_array,1) > smallestarray
 	rr_data_array(1,:)=[];
-	rr_time_array(1,:)=[];
+	rr_time_data(1,:)=[];
 end
 % Do it again if required
 if size(cm_data_array,1) > smallestarray
 	cm_data_array(1,:)=[];
-	cm_time_array(1,:)=[];
+	cm_time_data(1,:)=[];
 end
 if size(fl_data_array,1) > smallestarray
 	fl_data_array(1,:)=[];
-	fl_time_array(1,:)=[];
+	fl_time_data(1,:)=[];
 end
 if size(fr_data_array,1) > smallestarray
 	fr_data_array(1,:)=[];
-	fr_time_array(1,:)=[];
+	fr_time_data(1,:)=[];
 end
 if size(rl_data_array,1) > smallestarray
 	rl_data_array(1,:)=[];
-	rr_time_array(1,:)=[];
+	rr_time_data(1,:)=[];
 end
 if size(rr_data_array,1) > smallestarray
 	rr_data_array(1,:)=[];
-	rr_time_array(1,:)=[];
+	rr_time_data(1,:)=[];
 end
 % Adjust time_arrays to suit.
-if size(cm_time_array,1) > smallestarray
-	cm_time_array(1,:)=[];
+if size(cm_time_data,1) > smallestarray
+	cm_time_data(1,:)=[];
 end
-if size(fl_time_array,1) > smallestarray
-	fl_time_array(1,:)=[];
+if size(fl_time_data,1) > smallestarray
+	fl_time_data(1,:)=[];
 end
-if size(fr_time_array,1) > smallestarray
-	fr_time_array(1,:)=[];
+if size(fr_time_data,1) > smallestarray
+	fr_time_data(1,:)=[];
 end
-if size(rl_time_array,1) > smallestarray
-	rl_time_array(1,:)=[];
+if size(rl_time_data,1) > smallestarray
+	rl_time_data(1,:)=[];
 end
-if size(rr_time_array,1) > smallestarray
-	rr_time_array(1,:)=[];
+if size(rr_time_data,1) > smallestarray
+	rr_time_data(1,:)=[];
 end
 cm_imudatasize=length(cm_data_array);
 fl_imudatasize=length(fl_data_array);
@@ -160,10 +163,11 @@ for loop=1:cm_imudatasize
 	reducedrobotanglearray(loop,:) = [ 0 0 ];
 end
 robotlinenumber = robotchangeline;
+loopstart=cm_imuchangeline+1
 lastdiff=100;
-for loop = cm_imuchangeline+1:cm_imudatasize
+for loop = loopstart:cm_imudatasize
 	cm_elapsed_time=cm_data_array(loop,1);
-	robottime=abs(cm_elapsed_time + AlignmentDifference);
+	robottime=cm_elapsed_time + AlignmentDifference;
 	for robotloop=robotlinenumber:size((robotanglearray-1))
 		robotloop;
 		prevdiff=abs(robotelapsedtimearray((robotloop-1),1)-robottime);
@@ -177,7 +181,7 @@ for loop = cm_imuchangeline+1:cm_imudatasize
 			lastdiff=100;
 			break
 		end
-		lastdiff
+		lastdiff;
 		if smallestdiff>lastdiff
 			% We've gone too far - break
 			lastdiff=100;
@@ -208,27 +212,27 @@ for imu = [ "cm" "fl" "fr" "rl" "rr" ]
 	gyro_y=imuarray(:,6);
 	gyro_z=imuarray(:,7);
 	if imu == 'cm'
-		[ cm_Mpitch, cm_Mroll, cm_Melapsed_time ] = madgwickfilter(cm_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,cm_time_array);
+		[ cm_Mpitch, cm_Mroll, cm_Melapsed_time ] = madgwickfilter(cm_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,cm_time_data);
 		[ cm_Kpitch, cm_Kroll, cm_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
 		cm_Mangles= [ cm_Mroll cm_Mpitch ];
 		cm_Kangles= [ cm_Kroll cm_Kpitch ];
 	elseif imu == 'fl'
-		[ fl_Mpitch, fl_Mroll, fl_Melapsed_time ] = madgwickfilter(fl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fl_time_array);
+		[ fl_Mpitch, fl_Mroll, fl_Melapsed_time ] = madgwickfilter(fl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fl_time_data);
 		[ fl_Kpitch, fl_Kroll, fl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
 		fl_Mangles= [ fl_Mroll fl_Mpitch ];
 		fl_Kangles= [ fl_Kroll fl_Kpitch ];
 	elseif imu == 'fr'
-		[ fr_Mpitch, fr_Mroll, fr_Melapsed_time ] = madgwickfilter(fr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fr_time_array);
+		[ fr_Mpitch, fr_Mroll, fr_Melapsed_time ] = madgwickfilter(fr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fr_time_data);
 		[ fr_Kpitch, fr_Kroll, fr_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
 		fr_Mangles= [ fr_Mroll fr_Mpitch ];
 		fr_Kangles= [ fr_Kroll fr_Kpitch ];
 	elseif imu == 'rl'
-		[ rl_Mpitch, rl_Mroll, rl_Melapsed_time ] = madgwickfilter(rl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rl_time_array);
+		[ rl_Mpitch, rl_Mroll, rl_Melapsed_time ] = madgwickfilter(rl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rl_time_data);
 		[ rl_Kpitch, rl_Kroll, rl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
 		rl_Mangles= [ rl_Mroll rl_Mpitch ];
 		rl_Kangles= [ rl_Kroll rl_Kpitch ];
 	elseif imu == 'rr'
-		[ rr_Mpitch, rr_Mroll, rr_Melapsed_time ] = madgwickfilter(rr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rr_time_array);
+		[ rr_Mpitch, rr_Mroll, rr_Melapsed_time ] = madgwickfilter(rr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rr_time_data);
 		[ rr_Kpitch, rr_Kroll, rr_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
 		rr_Mangles= [ rr_Mroll rr_Mpitch ];
 		rr_Kangles= [ rr_Kroll rr_Kpitch ];

@@ -1,0 +1,295 @@
+%Matlab Commands - XY-AxisBias data (Remember to save workspace when complete)
+
+clear all;
+%*********************************************************************************
+% Edit lines below
+movement_type='XY-AxisBias'
+filename_data='C:\Study\2023-09-27_1232-magvareidFLdownRrotated.csv';
+% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+filename_robot='C:\Study\robot-230927-123221-magvariedFLdownRtotated.txt';
+%*********************************************************************************
+filedata = readtable(filename_data);
+filetable(:,1:2)=filedata(:,1:2);
+filetable(:,3:8)=filedata(:,4:9);
+timetable(:,1)=filedata(:,3);
+
+imuelapsedtimearray=[];
+imuelapsedtimearray(1)=0;
+for x=2:size(timetable)
+	timediff=abs(second(timetable(x,1).Var3) - second(timetable(x-1,1).Var3));
+	% Account for minute transitions
+	if timediff>=20
+		timediff=0.001;
+	end
+	imuelapsedtimearray(x,1)=imuelapsedtimearray(x-1,1) + timediff;
+end
+
+cm_data_array=zeros(1,7);
+fl_data_array=zeros(1,7);
+fr_data_array=zeros(1,7);
+rl_data_array=zeros(1,7);
+rr_data_array=zeros(1,7);
+cm_time_data=zeros(1,1);
+fl_time_data=zeros(1,1);
+fr_time_data=zeros(1,1);
+rl_time_data=zeros(1,1);
+rr_time_data=zeros(1,1);
+clear loop;
+for loop=1:size(filetable)
+  cameraname=filetable(loop,1);
+  if strcmp(cameraname.Var1,'CM')==1
+    cm_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	cm_time_data(end+1,:)=imuelapsedtimearray(loop,1);
+  elseif strcmp(cameraname.Var1,'FL')==1
+    fl_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	fl_time_data(end+1,:)=imuelapsedtimearray(loop,1);
+  elseif strcmp(cameraname.Var1,'FR')==1
+    fr_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	fr_time_data(end+1,:)=imuelapsedtimearray(loop,1);
+  elseif strcmp(cameraname.Var1,'RL')==1
+    rl_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	rl_time_data(end+1,:)=imuelapsedtimearray(loop,1);
+  elseif strcmp(cameraname.Var1,'RR')==1
+    rr_data_array(end+1,:)=table2array(filetable(loop,2:end));
+	rr_time_data(end+1,:)=imuelapsedtimearray(loop,1);
+  end		
+end
+% Trim arrays to get rid of initial initialising row.
+cm_data_array(1,:)=[];
+cm_time_data(1,:)=[];
+fl_data_array(1,:)=[];
+fl_time_data(1,:)=[];
+fr_data_array(1,:)=[];
+fr_time_data(1,:)=[];
+rl_data_array(1,:)=[];
+rl_time_data(1,:)=[];
+rr_data_array(1,:)=[];
+rr_time_data(1,:)=[];
+
+% Reduce data arrays further if they're larger than the smallest array (varied sampling time creates this)
+datasizearray=[ size(cm_data_array,1) size(fl_data_array,1) size(fr_data_array,1) size(rl_data_array,1) size(rr_data_array,1) ];
+smallestarray = min(datasizearray);
+% Truncate all arrays from beginning (zero motion) if data larger than smallest array
+if size(cm_data_array,1) > smallestarray
+	cm_data_array(1,:)=[];
+	cm_time_data(1,:)=[];
+end
+if size(fl_data_array,1) > smallestarray
+	fl_data_array(1,:)=[];
+	fl_time_data(1,:)=[];
+end
+if size(fr_data_array,1) > smallestarray
+	fr_data_array(1,:)=[];
+	fr_time_data(1,:)=[];
+end
+if size(rl_data_array,1) > smallestarray
+	rl_data_array(1,:)=[];
+	rr_time_data(1,:)=[];
+end
+if size(rr_data_array,1) > smallestarray
+	rr_data_array(1,:)=[];
+	rr_time_data(1,:)=[];
+end
+% Do it again if required
+if size(cm_data_array,1) > smallestarray
+	cm_data_array(1,:)=[];
+	cm_time_data(1,:)=[];
+end
+if size(fl_data_array,1) > smallestarray
+	fl_data_array(1,:)=[];
+	fl_time_data(1,:)=[];
+end
+if size(fr_data_array,1) > smallestarray
+	fr_data_array(1,:)=[];
+	fr_time_data(1,:)=[];
+end
+if size(rl_data_array,1) > smallestarray
+	rl_data_array(1,:)=[];
+	rr_time_data(1,:)=[];
+end
+if size(rr_data_array,1) > smallestarray
+	rr_data_array(1,:)=[];
+	rr_time_data(1,:)=[];
+end
+% Adjust time_arrays to suit.
+if size(cm_time_data,1) > smallestarray
+	cm_time_data(1,:)=[];
+end
+if size(fl_time_data,1) > smallestarray
+	fl_time_data(1,:)=[];
+end
+if size(fr_time_data,1) > smallestarray
+	fr_time_data(1,:)=[];
+end
+if size(rl_time_data,1) > smallestarray
+	rl_time_data(1,:)=[];
+end
+if size(rr_time_data,1) > smallestarray
+	rr_time_data(1,:)=[];
+end
+cm_imudatasize=length(cm_data_array);
+fl_imudatasize=length(fl_data_array);
+fr_imudatasize=length(fr_data_array);
+rl_imudatasize=length(rl_data_array);
+rr_imudatasize=length(rr_data_array);
+
+imuarray=[];
+for imu = [ "cm" "fl" "fr" "rl" "rr" ]
+	clear imuarray;
+	if imu == 'cm'
+		imuarray=cm_data_array;
+		cm_accel_x=imuarray(:,2);
+		cm_gyro_x=imuarray(:,5);
+		cm_accel_y=imuarray(:,3);
+		cm_gyro_y=imuarray(:,6);
+	elseif imu == 'fl'
+		imuarray=fl_data_array;
+	elseif imu == 'fr'
+		imuarray=fr_data_array;
+	elseif imu == 'rl'
+		imuarray=rl_data_array;
+		rl_accel_x=imuarray(:,2);
+		rl_gyro_x=imuarray(:,5);
+		rl_accel_y=imuarray(:,3);
+		rl_gyro_y=imuarray(:,6);
+	elseif imu == 'rr'
+		imuarray=rr_data_array;
+		rr_accel_x=imuarray(:,2);
+		rr_gyro_x=imuarray(:,5);
+		rr_accel_y=imuarray(:,3);
+		rr_gyro_y=imuarray(:,6);
+	end
+	accel_x=imuarray(:,2);
+	accel_y=imuarray(:,3);	
+	accel_z=imuarray(:,4);
+	gyro_x=imuarray(:,5);
+	gyro_y=imuarray(:,6);
+	gyro_z=imuarray(:,7);
+	
+	if imu == 'cm'
+		[ cm_Mpitch, cm_Mroll, cm_Melapsed_time ] = madgwickfilter(cm_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,cm_time_data);
+		[ cm_Kpitch, cm_Kroll, cm_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		cm_Mangles= [ cm_Mroll cm_Mpitch ];
+		cm_Kangles= [ cm_Kroll cm_Kpitch ];
+	elseif imu == 'fl'
+		[ fl_Mpitch, fl_Mroll, fl_Melapsed_time ] = madgwickfilter(fl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fl_time_data);
+		[ fl_Kpitch, fl_Kroll, fl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		fl_Mangles= [ fl_Mroll fl_Mpitch ];
+		fl_Kangles= [ fl_Kroll fl_Kpitch ];
+	elseif imu == 'fr'
+		[ fr_Mpitch, fr_Mroll, fr_Melapsed_time ] = madgwickfilter(fr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,fr_time_data);
+		[ fr_Kpitch, fr_Kroll, fr_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		fr_Mangles= [ fr_Mroll fr_Mpitch ];
+		fr_Kangles= [ fr_Kroll fr_Kpitch ];
+	elseif imu == 'rl'
+		[ rl_Mpitch, rl_Mroll, rl_Melapsed_time ] = madgwickfilter(rl_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rl_time_data);
+		[ rl_Kpitch, rl_Kroll, rl_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		rl_Mangles= [ rl_Mroll rl_Mpitch ];
+		rl_Kangles= [ rl_Kroll rl_Kpitch ];
+	elseif imu == 'rr'
+		[ rr_Mpitch, rr_Mroll, rr_Melapsed_time ] = madgwickfilter(rr_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,rr_time_data);
+		[ rr_Kpitch, rr_Kroll, rr_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
+		rr_Mangles= [ rr_Mroll rr_Mpitch ];
+		rr_Kangles= [ rr_Kroll rr_Kpitch ];
+	end
+end
+
+zaxis_fl_data_array=fl_data_array;
+zaxis_Kangles=fl_Kangles;
+zaxis_Kroll=fl_Kroll;
+zaxis_Kpitch=fl_Kpitch;
+zaxis_Mangles=fl_Mangles;
+zaxis_Mpitch=fl_Mpitch;
+aaxis_Mroll=fl_Mroll;
+xaxis_accel_x=accel_x;
+xaxis_gyro_x=gyro_x;
+yaxis_accel_y=accel_y;
+yaxis_gyro_y=gyro_y;
+load('rotation.mat')
+
+startpos=1
+endpos=600
+hold off
+plot(rl_accel_x(startpos:endpos,:));
+hold on
+plot(-rr_accel_x(startpos:endpos,:));
+plot(cm_accel_x(startpos:endpos,:),'LineWidth',2.0);
+plot(rl_accel_y(startpos:endpos,:));
+plot(-rr_accel_y(startpos:endpos,:));
+plot(cm_accel_y(startpos:endpos,:),'LineWidth',2.0);
+title("Accelerometer angles compared when rotating rear IMUs");
+xlabel ('Number of IMU data samples');
+ylabel ('m/s2');
+legend ('RL X axis','RR X axis','Central X axis','RL Y axis','RR Y axis','Central Y axis')
+hold off
+
+hold off
+plot(rl_gyro_x(startpos:endpos,:));
+hold on
+plot(-rr_gyro_x(startpos:endpos,:));
+plot(-cm_gyro_x(startpos:endpos,:),'LineWidth',2.0);
+plot(-rl_gyro_y(startpos:endpos,:));
+plot(rr_gyro_y(startpos:endpos,:));
+plot(cm_gyro_y(startpos:endpos,:),'LineWidth',2.0);
+title("Gyrometer angles compared when rotating rear IMUs");
+xlabel ('Number of IMU data samples');
+ylabel ('m/s2');
+legend ('RL X axis','RR X axis','Central X axis','RL Y axis','RR Y axis','Central Y axis')
+hold off
+
+cm_gyro_min_x=min(cm_gyro_x(:,:))
+cm_gyro_min_y=min(cm_gyro_y(:,:))
+rl_gyro_min_x=min(rl_gyro_x(:,:))
+rl_gyro_min_y=min(rl_gyro_y(:,:))
+rr_gyro_min_x=min(rr_gyro_x(:,:))
+rr_gyro_min_y=min(rr_gyro_y(:,:))
+
+cm_gyro_max_x=max(cm_gyro_x(:,:))
+cm_gyro_max_y=max(cm_gyro_y(:,:))
+rl_gyro_max_x=max(rl_gyro_x(:,:))
+rl_gyro_max_y=max(rl_gyro_y(:,:))
+rr_gyro_max_x=max(rr_gyro_x(:,:))
+rr_gyro_max_y=max(rr_gyro_y(:,:))
+
+cm_gyro_mean_x=mean(cm_gyro_x(:,:))
+cm_gyro_mean_y=mean(cm_gyro_y(:,:))
+rl_gyro_mean_x=mean(rl_gyro_x(:,:))
+rl_gyro_mean_y=mean(rl_gyro_y(:,:))
+rr_gyro_mean_x=mean(rr_gyro_x(:,:))
+rr_gyro_mean_y=mean(rr_gyro_y(:,:))
+
+cm_gyro_median_x=median(cm_gyro_x(:,:))
+cm_gyro_median_y=median(cm_gyro_y(:,:))
+rl_gyro_median_x=median(rl_gyro_x(:,:))
+rl_gyro_median_y=median(rl_gyro_y(:,:))
+rr_gyro_median_x=median(rr_gyro_x(:,:))
+rr_gyro_median_y=median(rr_gyro_y(:,:))
+
+
+cm_accel_min_x=min(cm_accel_x(:,:))
+cm_accel_min_y=min(cm_accel_y(:,:))
+rl_accel_min_x=min(rl_accel_x(:,:))
+rl_accel_min_y=min(rl_accel_y(:,:))
+rr_accel_min_x=min(rr_accel_x(:,:))
+rr_accel_min_y=min(rr_accel_y(:,:))
+
+cm_accel_max_x=max(cm_accel_x(:,:))
+cm_accel_max_y=max(cm_accel_y(:,:))
+rl_accel_max_x=max(rl_accel_x(:,:))
+rl_accel_max_y=max(rl_accel_y(:,:))
+rr_accel_max_x=max(rr_accel_x(:,:))
+rr_accel_max_y=max(rr_accel_y(:,:))
+
+cm_accel_mean_x=mean(cm_accel_x(:,:))
+cm_accel_mean_y=mean(cm_accel_y(:,:))
+rl_accel_mean_x=mean(rl_accel_x(:,:))
+rl_accel_mean_y=mean(rl_accel_y(:,:))
+rr_accel_mean_x=mean(rr_accel_x(:,:))
+rr_accel_mean_y=mean(rr_accel_y(:,:))
+
+cm_accel_median_x=median(cm_accel_x(:,:))
+cm_accel_median_y=median(cm_accel_y(:,:))
+rl_accel_median_x=median(rl_accel_x(:,:))
+rl_accel_median_y=median(rl_accel_y(:,:))
+rr_accel_median_x=median(rr_accel_x(:,:))
+rr_accel_median_y=median(rr_accel_y(:,:))
