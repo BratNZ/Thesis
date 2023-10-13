@@ -58,20 +58,20 @@ rl_time_array=NaT(1,1);
 rr_time_array=NaT(1,1);
 clear loop;
 for loop=1:size(filetable)
-  cameraname=filetable(loop,1);
-  if strcmp(cameraname.Var1,'CM')==1
+  imuname=filetable(loop,1);
+  if strcmp(imuname.Var1,'CM')==1
     cm_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	cm_time_array(end+1,:)=table2array(timetable(loop,1));
-  elseif strcmp(cameraname.Var1,'FL')==1
+  elseif strcmp(imuname.Var1,'FL')==1
     fl_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	fl_time_array(end+1,:)=table2array(timetable(loop,1));
-  elseif strcmp(cameraname.Var1,'FR')==1
+  elseif strcmp(imuname.Var1,'FR')==1
     fr_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	fr_time_array(end+1,:)=table2array(timetable(loop,1));
-  elseif strcmp(cameraname.Var1,'RL')==1
+  elseif strcmp(imuname.Var1,'RL')==1
     rl_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	rl_time_array(end+1,:)=table2array(timetable(loop,1));
-  elseif strcmp(cameraname.Var1,'RR')==1
+  elseif strcmp(imuname.Var1,'RR')==1
     rr_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	rr_time_array(end+1,:)=table2array(timetable(loop,1));
   end		

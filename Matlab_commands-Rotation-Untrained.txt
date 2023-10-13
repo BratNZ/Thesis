@@ -4,9 +4,9 @@ clear all;
 %*********************************************************************************
 % Edit lines below
 movement_type='Varied-Rotations-Untrained'
-filename_data='C:\Study\2023-09-26_1804-rotating-nnlive.csv';
+filename_data='C:\Study\2023-09-26_1804-rotating-untrained.csv';
 % NOTE. Ensure robot data has no missing data or artifacts in it.
-filename_robot='C:\Study\robot-230926-180411-rotating-nnlive.txt';
+filename_robot='C:\Study\robot-230926-180411-rotating-untrained.txt';
 sequencetime=600;
 cm_imuchangeline=18;
 robotchangeline=22293;
@@ -67,20 +67,20 @@ rl_time_data=zeros(1,1);
 rr_time_data=zeros(1,1);
 clear loop;
 for loop=1:size(filetable)
-  cameraname=filetable(loop,1);
-  if strcmp(cameraname.Var1,'CM')==1
+  imuname=filetable(loop,1);
+  if strcmp(imuname.Var1,'CM')==1
     cm_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	cm_time_data(end+1,:)=imuelapsedtimearray(loop,1);
-  elseif strcmp(cameraname.Var1,'FL')==1
+  elseif strcmp(imuname.Var1,'FL')==1
     fl_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	fl_time_data(end+1,:)=imuelapsedtimearray(loop,1);
-  elseif strcmp(cameraname.Var1,'FR')==1
+  elseif strcmp(imuname.Var1,'FR')==1
     fr_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	fr_time_data(end+1,:)=imuelapsedtimearray(loop,1);
-  elseif strcmp(cameraname.Var1,'RL')==1
+  elseif strcmp(imuname.Var1,'RL')==1
     rl_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	rl_time_data(end+1,:)=imuelapsedtimearray(loop,1);
-  elseif strcmp(cameraname.Var1,'RR')==1
+  elseif strcmp(imuname.Var1,'RR')==1
     rr_data_array(end+1,:)=table2array(filetable(loop,2:end));
 	rr_time_data(end+1,:)=imuelapsedtimearray(loop,1);
   end		
@@ -368,6 +368,45 @@ nn_prediction_array = cm_data_array(:,2:end);
 nn_3IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) ];
 nn_5IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) rl_data_array(:,2:end) rr_data_array(:,2:end) ];
 nn_response_array = reducedrobotanglearray;
+
+norm_robot_pitch_array=reducedrobotanglearray(:,1)/norm(reducedrobotanglearray(:,1));
+norm_robot_roll_array=reducedrobotanglearray(:,2)/norm(reducedrobotanglearray(:,2));
+norm_cm_data_array=cm_data_array(:,2:end)/norm(cm_data_array(:,2:end));
+norm_fl_data_array=fl_data_array(:,2:end)/norm(fl_data_array(:,2:end));
+norm_fr_data_array=fr_data_array(:,2:end)/norm(fr_data_array(:,2:end));
+norm_rl_data_array=rl_data_array(:,2:end)/norm(rl_data_array(:,2:end));
+norm_rr_data_array=rr_data_array(:,2:end)/norm(rr_data_array(:,2:end));
+
+norm_nn_prediction_array = norm_cm_data_array;
+norm_nn_3IMUs_prediction_array = [ norm_cm_data_array norm_fl_data_array norm_fr_data_array ];
+norm_nn_5IMUs_prediction_array = [ norm_cm_data_array norm_fl_data_array norm_fr_data_array norm_rl_data_array norm_rr_data_array ];
+norm_nn_response_array = [ norm_robot_pitch_array norm_robot_roll_array ];
+
+% Convert to row format.
+r_norm_nn_prediction_array=norm_nn_prediction_array.';
+r_norm_nn_3IMUs_prediction_array=norm_nn_3IMUs_prediction_array.';
+r_norm_nn_5IMUs_prediction_array=norm_nn_5IMUs_prediction_array.';
+r_norm_nn_response_array=norm_nn_response_array.';
+
+r_untrained_norm_nn_prediction_array=untrained_norm_nn_prediction_array.';
+r_untrained_norm_nn_3IMUs_prediction_array=untrained_norm_nn_3IMUs_prediction_array.';
+r_untrained_norm_nn_5IMUs_prediction_array=untrained_norm_nn_5IMU2_prediction_array.';
+r_untrained_norm_nn_response_array=untrained_norm_nn_response_array.';
+
+%NARXNET network - Use matlab script. Run Sim as per below
+load('varied-untrained-lite.mat');
+netresults=cell2mat(sim(net,tonndata(untrained_norm_nn_prediction_array,false,false)))
+
+%RBF Network
+start=tic;
+net=newrb(r_norm_nn_5IMUs_prediction_array,r_norm_nn_response_array,5.76e-06,1);
+nntrainingtime=toc(start)
+netresults=sim(net,r_untrained_norm_nn_5IMUS_prediction_array);
+
+%MLP Network
+%netresults=sim(net,untrained_norm_nn_prediction_array)
+netresults=sim(net,untrained_norm_nn_3IMUs_prediction_array,untrained_norm_nn_response_array)
+%netresults=sim(net,untrained_norm_nn_5IMUs_prediction_array)
 
 startpos=1
 endpos=599

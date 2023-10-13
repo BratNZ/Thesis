@@ -3,7 +3,7 @@ function [ mroll, mpitch, t ] = madgwickfilter(datasize,acc_x,acc_y,acc_z,gyr_x,
 	accel_data=[ acc_x acc_y acc_z ]
 	gyro_data= [ gyr_x,gyr_y,gyr_z ]
 	addpath('C:\Study\quaternion_library');
-	AHRSOBJ=MadgwickAHRS('SamplePeriod', 1/100, 'Beta', 15.0);
+	AHRSOBJ=MadgwickAHRS('SamplePeriod', 1/100, 'Beta', 5.0);
 	quaternion = zeros(length(timedata), 4);
 	mfilter = zeros(length(timedata), 3);
 	start=tic;
