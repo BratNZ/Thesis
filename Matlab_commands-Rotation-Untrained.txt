@@ -5,7 +5,7 @@ clear all;
 % Edit lines below
 movement_type='Varied-Rotations-Untrained'
 filename_data='C:\Study\2023-09-26_1804-rotating-nnlive.csv';
-% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+% NOTE. Ensure robot data has no missing data or artifacts in it.
 filename_robot='C:\Study\robot-230926-180411-rotating-nnlive.txt';
 sequencetime=600;
 cm_imuchangeline=18;
@@ -29,6 +29,8 @@ for x=2:length(robottimingarray)
 	end
 	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
 end
+robotproblemarray=isnan(robotelapsedtimearray);
+robotproblemindex=find(problemarray);
   
 robotanglearray=table2array(robotangletable);
 % Adjust pitch for 90degree mounting angle.

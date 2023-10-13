@@ -1,17 +1,16 @@
-%Matlab Commands - Roll only data (Remember to save workspace when complete)
+%Matlab Commands - Varied data (Remember to save workspace when complete)
 
 clear all;
 %*********************************************************************************
 % Edit lines below
 movement_type='Varied'
 filename_data='C:\Study\2023-09-21_1212-noextrm.csv';
-% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+% NOTE. Ensure robot data has no missing data or artifacts in it.
 filename_robot='C:\Study\robot-230921-1212-noextrm.txt';
 sequencetime=600;
 cm_imuchangeline=50;
 robotchangeline=25850;
 %*********************************************************************************
-filedata = readtable(filename_data);
 robotdatatable = readtable(filename_robot);
 
 % Get Robot data - roll then pitch of motor joints.
@@ -31,7 +30,6 @@ for x=2:length(robottimingarray)
 	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
 end
 
-% 1535083, 
 % Get Robot data - roll then pitch of motor joints.
 robotangletable=robotdatatable(:,24:25);
 robotanglearray=table2array(robotangletable);
@@ -42,34 +40,46 @@ filedata = readtable(filename_data);
 filetable(:,1:2)=filedata(:,1:2);
 filetable(:,3:8)=filedata(:,4:9);
 timetable(:,1)=filedata(:,3);
+
+imuelapsedtimearray=[];
+imuelapsedtimearray(1)=0;
+for x=2:size(timetable)
+	timediff=abs(second(timetable(x,1).Var3) - second(timetable(x-1,1).Var3));
+	% Account for minute transitions
+	if timediff>=20
+		timediff=0.001;
+	end
+	imuelapsedtimearray(x,1)=imuelapsedtimearray(x-1,1) + timediff;
+end
+
 cm_data_array=zeros(1,7);
 fl_data_array=zeros(1,7);
 fr_data_array=zeros(1,7);
 rl_data_array=zeros(1,7);
 rr_data_array=zeros(1,7);
-cm_time_data=NaT(1,1);
-fl_time_data=NaT(1,1);
-fr_time_data=NaT(1,1);
-rl_time_data=NaT(1,1);
-rr_time_data=NaT(1,1);
+cm_time_data=zeros(1,1);
+fl_time_data=zeros(1,1);
+fr_time_data=zeros(1,1);
+rl_time_data=zeros(1,1);
+rr_time_data=zeros(1,1);
 clear loop;
 for loop=1:size(filetable)
   cameraname=filetable(loop,1);
   if strcmp(cameraname.Var1,'CM')==1
     cm_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	cm_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
+	cm_time_data(end+1,:)=imuelapsedtimearray(loop,1);
   elseif strcmp(cameraname.Var1,'FL')==1
     fl_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	fl_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
+	fl_time_data(end+1,:)=imuelapsedtimearray(loop,1);
   elseif strcmp(cameraname.Var1,'FR')==1
     fr_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	fr_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
+	fr_time_data(end+1,:)=imuelapsedtimearray(loop,1);
   elseif strcmp(cameraname.Var1,'RL')==1
     rl_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	rl_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
+	rl_time_data(end+1,:)=imuelapsedtimearray(loop,1);
   elseif strcmp(cameraname.Var1,'RR')==1
     rr_data_array(end+1,:)=table2array(filetable(loop,2:end));
-	rr_time_data(end+1,1)=table2array(timetable(loop,1),"InputFormat","yyyy/MM/dd HH:mm:ss.SSS)","Format","yyyy/MM/dd HH:mm:ss.SSS");
+	rr_time_data(end+1,:)=imuelapsedtimearray(loop,1);
   end		
 end
 % Trim arrays to get rid of initial initialising row.
@@ -153,11 +163,9 @@ rr_imudatasize=length(rr_data_array);
 
 reducedrobotanglearray=zeros(length(cm_data_array),2);
 robotarraysize=length(robotanglearray);
-startofcmdata=cm_data_array(cm_imuchangeline,1);
+startofcmdata=cm_time_data(cm_imuchangeline,1);
 startofrobotdata=robotelapsedtimearray(robotchangeline,1);
-% 5.9405 and 7.1296
 AlignmentDifference=startofrobotdata - startofcmdata;
-% 1.1891
 reducedrobotanglearray=[];
 for loop=1:cm_imudatasize
 	reducedrobotanglearray(loop,:) = [ 0 0 ];
@@ -166,7 +174,7 @@ robotlinenumber = robotchangeline;
 loopstart=cm_imuchangeline+1
 lastdiff=100;
 for loop = loopstart:cm_imudatasize
-	cm_elapsed_time=cm_data_array(loop,1);
+	cm_elapsed_time=cm_time_data(loop,1);
 	robottime=cm_elapsed_time + AlignmentDifference;
 	for robotloop=robotlinenumber:size((robotanglearray-1))
 		robotloop;
@@ -211,6 +219,7 @@ for imu = [ "cm" "fl" "fr" "rl" "rr" ]
 	gyro_x=imuarray(:,5);
 	gyro_y=imuarray(:,6);
 	gyro_z=imuarray(:,7);
+	
 	if imu == 'cm'
 		[ cm_Mpitch, cm_Mroll, cm_Melapsed_time ] = madgwickfilter(cm_imudatasize,accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z,cm_time_data);
 		[ cm_Kpitch, cm_Kroll, cm_Kelapsed_time ] = kalmanfilter(accel_x,accel_y,accel_z,gyro_z,gyro_y,gyro_z);
@@ -238,6 +247,7 @@ for imu = [ "cm" "fl" "fr" "rl" "rr" ]
 		rr_Kangles= [ rr_Kroll rr_Kpitch ];
 	end
 end
+
 for l = 1:cm_imudatasize
 	average_Kroll(l,:) = mean([ fl_Kroll(l) cm_Kroll(l) fr_Kroll(l) rl_Kroll(l) rr_Kroll(l) ]);
 	average_Mroll(l,:) = mean([ fl_Mroll(l) cm_Mroll(l) fr_Mroll(l) rl_Mroll(l) rr_Mroll(l) ]);
@@ -267,15 +277,74 @@ nn_3IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_d
 nn_5IMUs_prediction_array = [ cm_data_array(:,2:end) fl_data_array(:,2:end) fr_data_array(:,2:end) rl_data_array(:,2:end) rr_data_array(:,2:end) ];
 nn_response_array = reducedrobotanglearray;
 
-startpos=1
-endpos=600
+norm_robot_pitch_array=reducedrobotanglearray(:,1)/norm(reducedrobotanglearray(:,1));
+norm_robot_roll_array=reducedrobotanglearray(:,2)/norm(reducedrobotanglearray(:,2));
+norm_cm_data_array=cm_data_array(:,2:end)/norm(cm_data_array(:,2:end));
+norm_fl_data_array=fl_data_array(:,2:end)/norm(fl_data_array(:,2:end));
+norm_fr_data_array=fr_data_array(:,2:end)/norm(fr_data_array(:,2:end));
+norm_rl_data_array=rl_data_array(:,2:end)/norm(rl_data_array(:,2:end));
+norm_rr_data_array=rr_data_array(:,2:end)/norm(rr_data_array(:,2:end));
+
+norm_nn_prediction_array = norm_cm_data_array;
+norm_nn_3IMUs_prediction_array = [ norm_cm_data_array norm_fl_data_array norm_fr_data_array ];
+norm_nn_5IMUs_prediction_array = [ norm_cm_data_array norm_fl_data_array norm_fr_data_array norm_rl_data_array norm_rr_data_array ];
+norm_nn_response_array = [ norm_robot_pitch_array norm_robot_roll_array ];
+
+% Convert to row format.
+r_norm_nn_prediction_array=norm_nn_prediction_array.';
+r_norm_nn_3IMUs_prediction_array=norm_nn_3IMUs_prediction_array.';
+r_norm_nn_5IMUs_prediction_array=norm_nn_5IMUs_prediction_array.';
+r_norm_nn_response_array=norm_nn_response_array.';
+
+r_untrained_norm_nn_prediction_array=untrained_norm_nn_prediction_array.';
+r_untrained_norm_nn_3IMUs_prediction_array=untrained_norm_nn_3IMUs_prediction_array.';
+r_untrained_norm_nn_5IMUs_prediction_array=untrained_norm_nn_5IMU2_prediction_array.';
+r_untrained_norm_nn_response_array=untrained_norm_nn_response_array.';
+
+%NARXNET network - Use matlab script. Run Sim as per below
+load('varied-untrained-lite.mat');
+netresults=cell2mat(sim(net,tonndata(untrained_norm_nn_prediction_array,false,false)))
+
+%RBF Network
+start=tic;
+net=newrb(r_norm_nn_5IMUs_prediction_array,r_norm_nn_response_array,5.76e-06,1);
+nntrainingtime=toc(start)
+netresults=sim(net,r_untrained_norm_nn_5IMUS_prediction_array);
+
+%MLP Network
+%netresults=sim(net,untrained_norm_nn_prediction_array)
+netresults=sim(net,untrained_norm_nn_3IMUs_prediction_array,untrained_norm_nn_response_array)
+%netresults=sim(net,untrained_norm_nn_5IMUs_prediction_array)
+
+% Graph Data.
+startpos=1;
+endpos=600;
+plot(-netresults(1,startpos:endpos));
+hold on;
+plot(r_untrained_norm_nn_response_array(1,startpos:endpos),'LineWidth',2.0);
+xlabel ('Number of IMU data samples');
+ylabel ('Angle in Radians');
+title("RBF derived Roll angles vs Robot Arm Roll movement (All IMUs) on untrained rotational motion");
+legend ('RBF Roll','Robot Roll')
 hold off
+figure
+plot(-netresults(2,startpos:endpos));
+hold on;
+plot(r_untrained_norm_nn_response_array(2,startpos:endpos),'LineWidth',2.0);
+xlabel ('Number of IMU data samples');
+ylabel ('Angle in Radians');
+title("RBF derived Pitch angles vs Robot Arm Pitch movement (All IMUs) on untrained rotational motion");
+legend ('RBF Pitch','Robot Pitch')
+hold off
+
+
+
 % Plot Kalman Pitch and Roll
 plot(cm_Kpitch(startpos:endpos,:));
 hold on
 plot(cm_Kroll(startpos:endpos,:));
 % Plot Robot arm data
-plot(-reducedrobotanglearray(startpos:endpos,:));
+plot(-reducedrobotanglearray(startpos:endpos,:),'LineWidth',2.0);
 % Plot Madgwick Pitch and Roll
 plot(cm_Mpitch(startpos:endpos,:));
 plot(cm_Mroll(startpos:endpos,:));
@@ -287,7 +356,7 @@ hold off
 
 figure
 % Plot Robot arm data
-plot(-reducedrobotanglearray(startpos:endpos,:));
+plot(-reducedrobotanglearray(startpos:endpos,:),'LineWidth',2.0);
 hold on
 plot(average_Mpitch(startpos:endpos,:));
 plot(average_Kroll(startpos:endpos,:));

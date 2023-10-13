@@ -5,7 +5,7 @@ clear all;
 % Edit lines below
 movement_type='Pitch'
 filename_data='C:\Study\2023-09-14_1010-pitch.csv';
-% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+% NOTE. Ensure robot data has no missing data or artifacts in it. 
 filename_robot='C:\Study\robot-230914-101049-pitch.txt';
 cm_imuchangeline=62;
 robotchangeline=31498;
@@ -28,6 +28,8 @@ for x=2:length(robottimingarray)
 	end
 	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
 end
+robotproblemarray=isnan(robotelapsedtimearray);
+robotproblemindex=find(problemarray);
   
 robotanglearray=table2array(robotangletable);
 % Adjust pitch for 90degree mounting angle.
@@ -194,7 +196,7 @@ plot(cm_Mpitch(startpos:endpos,:));
 hold on
 % Plot Robot arm data
 plot(reducedrobotanglearray(startpos:endpos,:));
-title("Madgwick Pitch and Robot Arm movements compared with gain set to 15.0");
+title("Madgwick Pitch and Robot Arm movements compared with gain set to 5.0");
 xlabel ('Number of Data Samples');
 ylabel ('Angle in Radians');
 legend ('Madgwick Pitch','Robot Pitch','Robot Roll')
@@ -207,7 +209,7 @@ hold on
 plot(cm_Mpitch(startpos:endpos,:));
 % Plot Robot arm data
 plot(reducedrobotanglearray(startpos:endpos,:));
-title("Kalman and Madgwick Pitch and Robot Arm movements compared");
+title("Kalman and Madgwick Pitch and Robot Arm movements compared with gain set to 5.0");
 xlabel ('Number of Data Samples');
 ylabel ('Angle in Radians');
 legend ('Kalman Pitch','Madgwick Pitch','Robot Pitch','Robot Roll')

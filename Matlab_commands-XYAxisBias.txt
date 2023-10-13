@@ -5,9 +5,34 @@ clear all;
 % Edit lines below
 movement_type='XY-AxisBias'
 filename_data='C:\Study\2023-09-27_1232-magvareidFLdownRrotated.csv';
-% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+% NOTE. Ensure robot data has no missing data or artifacts in it.
 filename_robot='C:\Study\robot-230927-123221-magvariedFLdownRtotated.txt';
 %*********************************************************************************
+robotdatatable = readtable(filename_robot);
+
+% Get Robot data - roll then pitch of motor joints.
+robotangletable=robotdatatable(:,24:25);
+robottimingtable=robotdatatable(:,2);
+newrobottimingtable=rmmissing(robottimingtable);
+robottimingtable=newrobottimingtable;
+robottimingarray=table2array(robottimingtable);
+robotelapsedtimearray=[];
+robotelapsedtimearray(1)=0;
+for x=2:length(robottimingarray)
+	timediff=abs(second(robottimingarray(x)) - second(robottimingarray(x-1)));
+	% Account for minute transitions
+	if timediff>=20
+		timediff=0.001;
+	end
+	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
+end
+
+% Get Robot data - roll then pitch of motor joints.
+robotangletable=robotdatatable(:,24:25);
+robotanglearray=table2array(robotangletable);
+% Adjust pitch for 90degree mounting angle.
+robotanglearray(:,2)=(pi/2) - robotanglearray(:,2);
+
 filedata = readtable(filename_data);
 filetable(:,1:2)=filedata(:,1:2);
 filetable(:,3:8)=filedata(:,4:9);

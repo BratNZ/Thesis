@@ -5,7 +5,7 @@ clear all;
 % Edit lines below
 movement_type='Varied-Rotations-Mag'
 filename_data='C:\Study\2023-09-27_1042-rotatewithmag.csv';
-% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+% NOTE. Ensure robot data has no mising data or artifacts in it.
 filename_robot='C:\Study\robot-230927-104258-rotatewithmag.txt';
 sequencetime=600;
 cm_imuchangeline=18;

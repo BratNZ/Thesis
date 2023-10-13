@@ -5,7 +5,7 @@ clear all;
 % Edit lines below
 movement_type='Varied-Mag'
 filename_data='C:\Study\2023-09-26_1852-variedwithmag.csv';
-% NOTE. Ensure robot data has no python artifacts in it. (Square brackets can appear)
+% NOTE. Ensure robot data has no missing data or artifacts in it.
 filename_robot='C:\Study\robot-230926-185228-variedwithmag.txt';
 sequencetime=600;
 cm_imuchangeline=18;
@@ -30,7 +30,6 @@ for x=2:length(robottimingarray)
 	robotelapsedtimearray(x,1)=robotelapsedtimearray(x-1,1) + timediff;
 end
 
-% 1535083, 
 % Get Robot data - roll then pitch of motor joints.
 robotangletable=robotdatatable(:,24:25);
 robotanglearray=table2array(robotangletable);
